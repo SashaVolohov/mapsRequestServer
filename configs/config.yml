@@ -1,0 +1,2 @@
+port: "8000"
+invalidRequestErrorText: "Invalid request - Specify all parameters!"
