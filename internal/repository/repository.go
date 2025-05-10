@@ -2,15 +2,14 @@ package repository
 
 import (
 	"time"
-
-	mapsRequest "github.com/SashaVolohov/mapsRequestServer"
 )
 
 type API interface {
 	CreateValueByKey(key string, value string, time time.Time) error
 	GetValueByKey(key string) (string, error)
+	GetLifeTimeByKey(key string) (int64, error)
 	DeleteValueByKey(key string) error
-	GetMaps() map[string]mapsRequest.MapObject
+	GetKeys() []string
 }
 
 type Repository struct {

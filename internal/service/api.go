@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -28,23 +29,34 @@ func (s *APIService) DeleteValueByKey(key string) error {
 	return s.repo.DeleteValueByKey(key)
 }
 
-func (s *APIService) KeyCollector() {
+func (s *APIService) KeyCollector(ctx context.Context) {
+
 	for {
+		select {
 
-		for key, mapObject := range s.repo.GetMaps() {
+		case <-ctx.Done():
+			return
 
-			if time.Now().Unix() >= mapObject.LifeTime.Unix() {
-				err := s.repo.DeleteValueByKey(key)
+		case <-time.After(time.Second):
 
+			for _, key := range s.repo.GetKeys() {
+
+				lifeTime, err := s.repo.GetLifeTimeByKey(key)
 				if err != nil {
-					logrus.Errorf(fmt.Sprintf("Unable to delete old map key - %s", err.Error()))
+					logrus.Errorf(fmt.Sprintf("Unable to get key lifetime - %s", err.Error()))
+				}
+
+				if time.Now().Unix() >= lifeTime {
+					err := s.repo.DeleteValueByKey(key)
+
+					if err != nil {
+						logrus.Errorf(fmt.Sprintf("Unable to delete old map key - %s", err.Error()))
+					}
+
 				}
 
 			}
 
 		}
-
-		time.Sleep(time.Second)
-
 	}
 }
