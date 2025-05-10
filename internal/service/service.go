@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"github.com/SashaVolohov/mapsRequestServer/internal/repository"
@@ -10,7 +11,7 @@ type API interface {
 	CreateValueByKey(key string, value string, time time.Time) error
 	GetValueByKey(key string) (string, error)
 	DeleteValueByKey(key string) error
-	KeyCollector()
+	KeyCollector(ctx context.Context)
 }
 
 type Service struct {
