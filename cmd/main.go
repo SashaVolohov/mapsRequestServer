@@ -1,6 +1,11 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	mapsRequest "github.com/SashaVolohov/mapsRequestServer"
 	"github.com/SashaVolohov/mapsRequestServer/internal/handler"
 	"github.com/SashaVolohov/mapsRequestServer/internal/repository"
@@ -21,12 +26,31 @@ func main() {
 	services := service.NewService(repos)
 	handlers := handler.NewHandler(services)
 
-	go services.API.KeyCollector()
+	ctx, keyCollectorCancel := context.WithCancel(context.Background())
+	go services.API.KeyCollector(ctx)
 
 	server := new(mapsRequest.Server)
-	if err := server.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
-		logrus.Fatalf("Failed to initialize server: %s", err.Error())
+	go func() {
+		if err := server.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
+			logrus.Fatalf("Failed to initialize server: %s", err.Error())
+		}
+	}()
+
+	logrus.Println("MapsRequestServer has started!")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+
+	<-quit
+
+	logrus.Println("MapsRequestServer has shutting down...")
+
+	if err := server.Shutdown(context.Background()); err != nil {
+		logrus.Errorf("Unable to shutdown server: %s", err.Error())
 	}
+
+	keyCollectorCancel()
+
 }
 
 func initConfig() error {
